@@ -2,6 +2,8 @@
 
 extern crate env_logger;
 #[macro_use]
+extern crate glium;
+#[macro_use]
 extern crate log;
 extern crate rand;
 extern crate termion;
@@ -11,6 +13,8 @@ mod cpu;
 mod display;
 mod keyboard;
 mod memory_bus;
+mod sound;
+mod timer;
 
 use std::env;
 use std::fmt;

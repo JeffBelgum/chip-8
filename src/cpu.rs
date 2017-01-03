@@ -4,7 +4,7 @@ use rand::random;
 use display::Display;
 use keyboard::Keyboard;
 use memory_bus::MemoryBus;
-use chip8::Timer;
+use timer::Timer;
 
 // register names
 const V0: usize = 0x0;

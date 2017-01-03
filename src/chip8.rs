@@ -2,6 +2,8 @@ use cpu::Cpu;
 use display::Display;
 use keyboard::Keyboard;
 use memory_bus::MemoryBus;
+use sound::Sound;
+use timer::Timer;
 
 pub struct Chip8 {
     cpu: Cpu,
@@ -33,7 +35,7 @@ impl Chip8 {
             sound: Sound {},
         };
 
-        while c8.cpu.instruction_count() < 4096 {
+        while c8.cpu.instruction_count() < 1 {
             c8.execute_cycle();
             if c8.should_exit() {
                 debug!("Exiting");
@@ -58,35 +60,5 @@ impl Chip8 {
 
     pub fn should_exit(&self) -> bool {
         self.cpu.should_exit()
-    }
-}
-
-struct Sound {}
-
-impl Sound {
-    pub fn emit(&self) {
-    }
-}
-
-pub struct Timer {
-    value: u8
-}
-
-impl Timer {
-    pub fn new() -> Timer {
-        Timer {
-            value: 0
-        }
-    }
-    pub fn get_value(&self) -> u8 {
-        self.value
-    }
-    pub fn set_value(&mut self, value: u8) {
-        self.value = value;
-    }
-    pub fn decr(&mut self) {
-        if self.value > 0 {
-            self.value -= 1;
-        }
     }
 }
