@@ -2,7 +2,9 @@ use std::process;
 use rand::random;
 
 use display::Display;
+use keyboard::Keyboard;
 use memory_bus::MemoryBus;
+use chip8::Timer;
 
 // register names
 const V0: usize = 0x0;
@@ -41,9 +43,13 @@ pub struct Cpu {
     // The stack is used to store return addresses when subroutines are called.
     // We use 16 levels of nesting.
     stack: Vec<usize>,
-    
+
     // counts the number of instructions executed
     counter: u64,
+
+    // flag to let the system know whether to shut down
+    // this is just for convenience and doesn't model the real CHIP-8 system
+    exit: bool,
 }
 
 
@@ -55,6 +61,7 @@ impl Cpu {
             reg_i: 0,
             stack: Vec::with_capacity(STACK_SIZE),
             counter: 0,
+            exit: false,
         }
     }
 
@@ -62,21 +69,39 @@ impl Cpu {
         self.counter
     }
 
-    pub fn execute_instruction(&mut self, memory_bus: &mut MemoryBus, display: &mut Display) {
+    pub fn should_exit(&self) -> bool {
+        self.exit
+    }
+
+    pub fn execute_instruction(&mut self,
+                               memory_bus: &mut MemoryBus,
+                               display: &mut Display,
+                               keyboard: &mut Keyboard,
+                               delay_timer: &mut Timer,
+                               sound_timer: &mut Timer,
+                               )
+    {
+        if self.exit {
+            return;
+        }
+
         let instr = memory_bus.read_instruction(self.reg_pc);
-        let pc = self.reg_pc;
+
         self.counter += 1;
+
+        let pc = self.reg_pc;
         self.reg_pc += OP_SIZE;
+
         let nibble_1 = (instr & 0xF000) >> 12;
         match nibble_1 {
             0x0 => {
                 match instr {
                     0x0A00 => {
                         debug!("End of ROM");
-                        process::exit(0);
+                        self.exit = true;
                     }
                     0x00E0 => {
-                        panic!("clear display -- unimplemented");
+                        display.clear();
                     }
                     0x00EE => {
                         self.reg_pc = self.stack
@@ -185,7 +210,6 @@ impl Cpu {
                 self.reg_pc = self.reg_vx[V0] as usize + (0xFFF & instr) as usize;
             }
             0xC => {
-                // debug!("rnd");
                 let x = ((instr & 0x0F00) >> 8) as usize;
                 let nn = (instr & 0xFF) as u8;
                 self.reg_vx[x] = random::<u8>() & nn;
@@ -202,9 +226,79 @@ impl Cpu {
                 let flipped_unset = display.draw(vx, vy, n, memory_bus, i);
                 self.reg_vx[VF] = if flipped_unset { 1 } else { 0 };
             }
-            _ => panic!("Unimplemented instruction: {:X}", instr)
+            0xE => {
+                let x = ((instr & 0xF00) >> 8) as usize;
+                match instr & 0xFF {
+                    0x9E => {
+                        debug!("Is {:02X} pressed?", self.reg_vx[x]);
+                        // panic!("Unimplemented instruction: {:X}", instr)
+                    }
+                    0xA1 => {
+                        debug!("Is {:02X} unpressed?", self.reg_vx[x]);
+                        // panic!("Unimplemented instruction: {:X}", instr)
+                    }
+                    _ => panic!("Invalid instruction: {:X}", instr),
+                }
+            }
+            0xF => {
+                let x = ((instr & 0xF00) >> 8) as usize;
+                match instr & 0xFF {
+                    0x07 => {
+                        self.reg_vx[x] = delay_timer.get_value();
+                    }
+                    0x0A => {
+                        self.reg_vx[x] = keyboard.get_key();
+                    }
+                    0x15 => {
+                        delay_timer.set_value(self.reg_vx[x]);
+                    }
+                    0x18 => {
+                        sound_timer.set_value(self.reg_vx[x]);
+                    }
+                    0x1E => {
+                        self.reg_i += self.reg_vx[x] as u16;
+                        if self.reg_i > 0xFFF {
+                            self.reg_vx[VF] = 1;
+                        } else {
+                            self.reg_vx[VF] = 0;
+                        }
+                    }
+                    0x29 => {
+                        let hex_char = self.reg_vx[x];
+                        self.reg_i = MemoryBus::font_sprite_address(hex_char)
+                                               .expect("Invalid hex char") as u16;
+                    }
+                    0x33 => {
+                        let x = x as u8;
+                        let i = self.reg_i as usize;
+
+                        let hundreds = x / 100;
+                        let tens = (x % 100) / 10;
+                        let ones = x % 10;
+
+                        memory_bus.write_word(i, hundreds);
+                        memory_bus.write_word(i+1, tens);
+                        memory_bus.write_word(i+2, ones);
+                    }
+                    0x55 => {
+                        let len = x + 1;
+                        let dst_addr = self.reg_i as usize;
+                        let src = &self.reg_vx[0..len];
+                        memory_bus.write_words(dst_addr, src);
+                    }
+                    0x65 => {
+                        let len = x + 1;
+                        let src_addr = self.reg_i as usize;
+                        let src = memory_bus.read_words(src_addr, len);
+                        let dst = &mut self.reg_vx[0..len];
+                        dst.copy_from_slice(src);
+                    }
+                    _ => panic!("Invalid instruction: {:X}", instr)
+                }
+            }
+            _ => panic!("Invalid instruction: {:X}", instr)
         }
-        debug!("{:04} 0x{:04X} {:04X}: V0=0x{:02X} V1=0x{:02X} V2=0x{:02X} I=0x{:03X}", 
+        debug!("{:04} 0x{:04X} {:04X}: V0=0x{:02X} V1=0x{:02X} V2=0x{:02X} I=0x{:03X} DT={:03} ST={:03}",
                self.counter,
                pc,
                instr,
@@ -212,8 +306,8 @@ impl Cpu {
                self.reg_vx[V1],
                self.reg_vx[V2],
                self.reg_i,
+               delay_timer.get_value(),
+               sound_timer.get_value(),
                );
-
-        // debug!("{:?}", self.reg_vx);
     }
 }

@@ -9,6 +9,7 @@ extern crate termion;
 mod chip8;
 mod cpu;
 mod display;
+mod keyboard;
 mod memory_bus;
 
 use std::env;

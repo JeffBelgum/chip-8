@@ -1,5 +1,6 @@
 use cpu::Cpu;
 use display::Display;
+use keyboard::Keyboard;
 use memory_bus::MemoryBus;
 
 pub struct Chip8 {
@@ -16,24 +17,76 @@ impl Chip8 {
     pub fn run(rom: &[u8]) {
         let mut mem_bus = MemoryBus::new();
         mem_bus.load_rom(rom);
+
         let display = Display::new();
+        let keyboard = Keyboard::new();
+        let delay_timer = Timer::new();
+        let sound_timer = Timer::new();
+
         let mut c8 = Chip8 {
             cpu: Cpu::new(),
             mem_bus: mem_bus,
-            delay_timer: Timer {},
-            sound_timer: Timer {},
+            delay_timer: delay_timer,
+            sound_timer: sound_timer,
             display: display,
-            keyboard: Keyboard {},
+            keyboard: keyboard,
             sound: Sound {},
         };
 
-        loop {
-        // while c8.cpu.instruction_count() < 1024 {
-            c8.cpu.execute_instruction(&mut c8.mem_bus, &mut c8.display);
+        while c8.cpu.instruction_count() < 4096 {
+            c8.execute_cycle();
+            if c8.should_exit() {
+                debug!("Exiting");
+                return;
+            }
         }
+    }
+
+    pub fn execute_cycle(&mut self) {
+        self.cpu.execute_instruction(&mut self.mem_bus,
+                                     &mut self.display,
+                                     &mut self.keyboard,
+                                     &mut self.delay_timer,
+                                     &mut self.sound_timer);
+        // TODO: should this happen here or at the beginning of the cycle?
+        self.delay_timer.decr();
+        self.sound_timer.decr();
+        if self.sound_timer.get_value() > 0 {
+            self.sound.emit();
+        }
+    }
+
+    pub fn should_exit(&self) -> bool {
+        self.cpu.should_exit()
     }
 }
 
-struct Timer {}
-struct Keyboard {}
 struct Sound {}
+
+impl Sound {
+    pub fn emit(&self) {
+    }
+}
+
+pub struct Timer {
+    value: u8
+}
+
+impl Timer {
+    pub fn new() -> Timer {
+        Timer {
+            value: 0
+        }
+    }
+    pub fn get_value(&self) -> u8 {
+        self.value
+    }
+    pub fn set_value(&mut self, value: u8) {
+        self.value = value;
+    }
+    pub fn decr(&mut self) {
+        if self.value > 0 {
+            self.value -= 1;
+        }
+    }
+}
