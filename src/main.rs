@@ -5,6 +5,7 @@ extern crate env_logger;
 extern crate glium;
 #[macro_use]
 extern crate log;
+extern crate portaudio;
 extern crate rand;
 extern crate termion;
 
@@ -13,22 +14,24 @@ mod cpu;
 mod display;
 mod keyboard;
 mod memory_bus;
+mod opcodes;
 mod sound;
 mod timer;
+mod window;
 
 use std::env;
 use std::fmt;
 use std::fs::File;
-use std::io;
 use std::io::Read;
 use std::path::Path;
 
 fn main() {
 
     // init logging
-    let mut logger = env_logger::LogBuilder::new();
-    logger.parse("debug");
-    logger.init().unwrap();
+    // let mut logger = env_logger::LogBuilder::new();
+    // logger.parse("info");
+    // logger.init().unwrap();
+    env_logger::init().unwrap();
     debug!("");
     debug!("");
     debug!("///////////////////////////");
@@ -41,7 +44,10 @@ fn main() {
     let bin_file = load_bin(path);
 
     // create and run chip-8 emulator
-    chip8::Chip8::run(&bin_file);
+    // chip8::Chip8::run(&bin_file);
+
+    // print disassembled code
+    chip8::Chip8::disassemble(&bin_file);
 }
 
 fn load_bin<P>(path: P) -> Vec<u8>

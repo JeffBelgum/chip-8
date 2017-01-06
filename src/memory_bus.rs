@@ -1,5 +1,5 @@
 const MEMORY_SIZE: usize = 4 * 1024;
-const ROM_START: usize = 0x200;
+pub const ROM_START: usize = 0x200;
 
 const FONT_START: usize = 0x050;
 const FONT_END: usize = 0x0A0;
