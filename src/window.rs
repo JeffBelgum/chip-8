@@ -1,8 +1,5 @@
 use std::collections::HashMap;
 
-
-use std::io;
-
 use glium::backend::glutin_backend::GlutinFacade;
 use glium::glutin::{ElementState, Event};
 use glium::{
@@ -165,7 +162,5 @@ impl Window {
         frame.draw(&self.vertex_buffer, &self.index_buffer, &self.program, &uniforms, &Default::default()).expect("frame draw");
         frame.finish().expect("finishing frame");
         self.poll_events();
-        // let mut input = String::new();
-        // io::stdin().read_line(&mut input);
     }
 }

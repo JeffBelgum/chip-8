@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use std::{thread,time};
+use std::{fmt, io};
 
 use cpu::Cpu;
 use display::Display;
@@ -21,6 +21,14 @@ pub struct Chip8 {
     sound: Sound,
 }
 
+impl fmt::Debug for Chip8 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // TODO FIXME: if timers are ever run out of lockstep from cpu, the values will be wrong
+        // here
+        write!(f, "{:?} dt={:#02X} st={:#02X}", self.cpu, self.delay_timer.get_value(), self.sound_timer.get_value())
+    }
+}
+
 impl Chip8 {
     pub fn disassemble(rom: &[u8]) {
         let mut count = 0x200;
@@ -35,12 +43,12 @@ impl Chip8 {
                     ((word_1 as u16) << 8) | (word_2 as u16)
                 };
             let opcode: OpCode = instr.into();
-            println!("0x{:03X} {:04X}    {}", count, instr, opcode);
+            println!("{:#03X} {:04X}    {}", count, instr, opcode);
             count += 2;
         }
     }
 
-    pub fn run(rom: &[u8]) {
+    pub fn run(rom: &[u8], step: bool) {
         let mut mem_bus = MemoryBus::new();
         mem_bus.load_rom(rom);
         let window = Arc::new(Mutex::new(Window::new(64, 32)));
@@ -56,7 +64,7 @@ impl Chip8 {
         };
 
         // boot sound
-        // c8.sound.emit();
+        c8.sound.emit();
 
         loop {
         //while c8.cpu.instruction_count() < 20 {
@@ -64,9 +72,12 @@ impl Chip8 {
             if c8.should_exit() {
                 break;
             }
+            if step {
+                debug!("{:?}", c8);
+                let mut input = String::new();
+                let _ = io::stdin().read_line(&mut input);
+            }
         }
-
-        //thread::sleep(time::Duration::from_millis(10_000));
 
         debug!("Shutdown");
     }

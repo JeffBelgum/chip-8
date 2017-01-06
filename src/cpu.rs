@@ -1,3 +1,4 @@
+use std::fmt;
 use rand::random;
 
 use display::Display;
@@ -53,6 +54,40 @@ pub struct Cpu {
     exit: bool,
 }
 
+impl fmt::Debug for Cpu {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let stack: String = if self.stack.len() > 0 {
+            let mut stack: String = " ".into();
+            for addr in &self.stack {
+                stack += &*format!("{:#03X}", addr);
+            }
+            stack
+        } else {
+            "".into()
+        };
+        write!(f, "{:08} pc={:#02X} i={:#03X} v[0={:#02X} 1={:#02X} 2={:#02X} 3={:#02X} 4={:#02X} 5={:#02X} 6={:#02X} 7={:#02X} 8={:#02X} 9={:#02X} a={:#02X} b={:#02X} c={:#02X} d={:#02X} e={:#02X} f={:#02X}]{}", 
+               self.counter,
+               self.reg_pc,
+               self.reg_i,
+               self.reg_vx[V0],
+               self.reg_vx[V1],
+               self.reg_vx[V2],
+               self.reg_vx[V3],
+               self.reg_vx[V4],
+               self.reg_vx[V5],
+               self.reg_vx[V6],
+               self.reg_vx[V7],
+               self.reg_vx[V8],
+               self.reg_vx[V9],
+               self.reg_vx[VA],
+               self.reg_vx[VB],
+               self.reg_vx[VC],
+               self.reg_vx[VD],
+               self.reg_vx[VE],
+               self.reg_vx[VF],
+               stack)
+    }
+}
 
 impl Cpu {
     pub fn new() -> Cpu {
@@ -97,7 +132,7 @@ impl Cpu {
         let pc = self.reg_pc;
         self.reg_pc += OP_SIZE;
 
-        debug!("{:010} 0x{:03X} {:04X} {:?}", self.counter, pc, instr, opcode);
+        debug!("{:010} {:#03X} {:04X} {:?}", self.counter, pc, instr, opcode);
 
         // execute instruction logic
         match opcode {
@@ -230,16 +265,5 @@ impl Cpu {
             Unknown(instr) => panic!("Invalid instruction {:X}", instr),
         };
 
-    }
-
-    pub fn print_cpu_state(&self) {
-        debug!("{:04} PC=0x{:04X}: I=0x{:03X} V0=0x{:02X} V1=0x{:02X} V2=0x{:02X}",
-               self.counter,
-               self.reg_pc,
-               self.reg_i,
-               self.reg_vx[V0],
-               self.reg_vx[V1],
-               self.reg_vx[V2],
-               );
     }
 }
