@@ -101,10 +101,6 @@ impl Cpu {
         }
     }
 
-    pub fn instruction_count(&self) -> u64 {
-        self.counter
-    }
-
     pub fn should_exit(&self) -> bool {
         self.exit
     }

@@ -1,5 +1,6 @@
 #![allow(dead_code,unused_variables)]
 
+extern crate clap;
 extern crate env_logger;
 #[macro_use]
 extern crate glium;
@@ -25,29 +26,50 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+use clap::{Arg, App};
+
 fn main() {
 
     // init logging
-    // let mut logger = env_logger::LogBuilder::new();
-    // logger.parse("info");
-    // logger.init().unwrap();
-    env_logger::init().unwrap();
-    debug!("");
-    debug!("");
+    let mut logger = env_logger::LogBuilder::new();
+    let log_filters = env::var("RUST_LOG").unwrap_or("info".into());
+    logger.parse(&log_filters);
+    logger.init()
+          .expect("failed to initialize logging");
+
     debug!("///////////////////////////");
     debug!("/ Running CHIP-8 emulator /");
     debug!("///////////////////////////");
-    debug!("");
+
+    // parse command line args
+    let args = App::new("CHIP EMUL8")
+        .version("0.1")
+        .author("Jeff Belgum <jeffbelgum@gmail.com>")
+        .arg(Arg::with_name("ROM_FILE")
+             .help("Sets the rom file to load")
+             .required(true)
+             .index(1))
+        .arg(Arg::with_name("debug")
+             .short("d")
+             .long("debug")
+             .help("starts the emulator up in debug mode to step through instructions one at a time"))
+        .arg(Arg::with_name("disassemble")
+             .long("dis")
+             .help("prints disassembled rom"))
+        .get_matches();
 
     // load rom
-    let path = env::args().nth(1).unwrap();
+    let path = args.value_of("ROM_FILE").unwrap();
     let bin_file = load_bin(path);
 
-    // create and run chip-8 emulator
-    // chip8::Chip8::run(&bin_file);
-
-    // print disassembled code
-    chip8::Chip8::disassemble(&bin_file);
+    if args.is_present("disassemble") {
+        // print disassembled code
+        chip8::Chip8::disassemble(&bin_file);
+    } else {
+        let step = args.is_present("debug");
+        // create and run chip-8 emulator
+        chip8::Chip8::run(&bin_file, step)
+    }
 }
 
 fn load_bin<P>(path: P) -> Vec<u8>

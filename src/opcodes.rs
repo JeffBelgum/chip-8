@@ -156,7 +156,7 @@ impl fmt::Display for OpCode {
             OpCode::SetBCD{x} =>         write!(f, "set  bcd V{:X}", x),
             OpCode::DumpReg{x} =>        write!(f, "dump V0..V{:X} to *I", x),
             OpCode::LoadReg{x} =>        write!(f, "load V0..V{:X} from *I", x),
-            OpCode::Unknown(instr) =>    write!(f, "unrecognized instruction"),
+            OpCode::Unknown(_) =>        write!(f, "unrecognized instruction"),
         }
     }
 }
