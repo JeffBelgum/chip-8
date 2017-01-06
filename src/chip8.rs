@@ -23,6 +23,7 @@ pub struct Chip8 {
 
 impl Chip8 {
     pub fn disassemble(rom: &[u8]) {
+        let mut count = 0x200;
         for chunk in rom.chunks(2) {
             let word_1 = chunk[0];
             let instr = 
@@ -34,7 +35,8 @@ impl Chip8 {
                     ((word_1 as u16) << 8) | (word_2 as u16)
                 };
             let opcode: OpCode = instr.into();
-            println!("{:04X} {:?}", instr, opcode);
+            println!("0x{:03X} {:04X}    {}", count, instr, opcode);
+            count += 2;
         }
     }
 

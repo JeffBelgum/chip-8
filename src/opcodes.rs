@@ -1,3 +1,5 @@
+use std::fmt;
+
 // 2 words per opcode
 pub const OP_SIZE: usize = 2;
 
@@ -112,6 +114,49 @@ impl From<u16> for OpCode {
                 }
             }
             _ => Unknown(instr),
+        }
+    }
+}
+
+impl fmt::Display for OpCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            OpCode::Eof =>               write!(f, "EOF"),
+            OpCode::DrawClr =>           write!(f, "draw clear"),
+            OpCode::Return =>            write!(f, "return"),
+            OpCode::JpConst{nnn} =>      write!(f, "jump 0x{:03X}", nnn),
+            OpCode::Call{nnn} =>         write!(f, "call 0x{:03X}", nnn),
+            OpCode::SkpEqConst{x,nn} =>  write!(f, "skip V{:X}==0x{:02X}", x, nn),
+            OpCode::SkpNeConst{x,nn} =>  write!(f, "skip V{:X}!=0x{:02X}", x, nn),
+            OpCode::SkpEqReg{x,y} =>     write!(f, "skip V{:X}==V{:X}", x, y),
+            OpCode::SetConst{x,nn} =>    write!(f, "set  V{:X}=0x{:02X}", x, nn),
+            OpCode::AddConst{x,nn} =>    write!(f, "set  V{:X}+=0x{:02X}", x, nn),
+            OpCode::SetReg{x,y} =>       write!(f, "set  V{:X}=V{:X}", x, y),
+            OpCode::SetRegBor{x,y} =>    write!(f, "set  V{:X}|=V{:X}", x, y),
+            OpCode::SetRegBand{x,y} =>   write!(f, "set  V{:X}&=V{:X}", x, y),
+            OpCode::SetRegBxor{x,y} =>   write!(f, "set  V{:X}^=V{:X}", x, y),
+            OpCode::SetRegAdd{x,y} =>    write!(f, "set  V{:X}+=V{:X}", x, y),
+            OpCode::SetRegSub{x,y} =>    write!(f, "set  V{:X}-=V{:X}", x, y),
+            OpCode::SetShr1{x} =>        write!(f, "set  V{:X}>>=1", x),
+            OpCode::SetRegRevSub{x,y} => write!(f, "set  V{:X}=V{:X} - V{:X}", x, y, x),
+            OpCode::SetShl1{x} =>        write!(f, "set  V{:X}<<=1", x),
+            OpCode::JpRegNe{x,y} =>      write!(f, "jump V{:X}!=V{:X}", x, y),
+            OpCode::SetI{nnn} =>         write!(f, "set  I=0x{:03X}", nnn),
+            OpCode::JpOffset{nnn} =>     write!(f, "jump V0 + 0x{:03X}", nnn),
+            OpCode::SetRand{x,nn} =>     write!(f, "set  V{:X}=rand() & {:02X}", x, nn),
+            OpCode::Draw{x,y,n} =>       write!(f, "draw V{:X}, V{:X}, {} ", x, y, n),
+            OpCode::SkpKeyEq{x} =>       write!(f, "skip V{:X} == key()", x),
+            OpCode::SkpKeyNe{x} =>       write!(f, "skip V{:X} != key()", x),
+            OpCode::SetRegDelay{x} =>    write!(f, "set  V{:X}=delay_timer", x),
+            OpCode::SetKey{x} =>         write!(f, "set  V{:X}=get_key()", x),
+            OpCode::SetDelay{x} =>       write!(f, "set  delay_timer=V{:X}", x),
+            OpCode::SetSound{x} =>       write!(f, "set  sound_timer=V{:X}", x),
+            OpCode::SetIRegAdd{x} =>     write!(f, "set  I=I+V{:X}", x),
+            OpCode::SetISprite{x} =>     write!(f, "set  I=sprite_addr[V{:X}]", x),
+            OpCode::SetBCD{x} =>         write!(f, "set  bcd V{:X}", x),
+            OpCode::DumpReg{x} =>        write!(f, "dump V0..V{:X} to *I", x),
+            OpCode::LoadReg{x} =>        write!(f, "load V0..V{:X} from *I", x),
+            OpCode::Unknown(instr) =>    write!(f, "unrecognized instruction"),
         }
     }
 }
