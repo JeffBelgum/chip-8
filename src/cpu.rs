@@ -59,13 +59,13 @@ impl fmt::Debug for Cpu {
         let stack: String = if self.stack.len() > 0 {
             let mut stack: String = " ".into();
             for addr in &self.stack {
-                stack += &*format!("{:#03X}", addr);
+                stack += &*format!("{:03X}", addr);
             }
             stack
         } else {
             "".into()
         };
-        write!(f, "{:08} pc={:#02X} i={:#03X} v[0={:#02X} 1={:#02X} 2={:#02X} 3={:#02X} 4={:#02X} 5={:#02X} 6={:#02X} 7={:#02X} 8={:#02X} 9={:#02X} a={:#02X} b={:#02X} c={:#02X} d={:#02X} e={:#02X} f={:#02X}]{}", 
+        write!(f, "{:08} pc={:02X} i={:03X} v[0={:02X} 1={:02X} 2={:02X} 3={:02X} 4={:02X} 5={:02X} 6={:02X} 7={:02X} 8={:02X} 9={:02X} a={:02X} b={:02X} c={:02X} d={:02X} e={:02X} f={:02X}]{}",
                self.counter,
                self.reg_pc,
                self.reg_i,
@@ -101,6 +101,12 @@ impl Cpu {
         }
     }
 
+    #[inline(always)]
+    pub fn instruction_count(&self) -> u64 {
+        self.counter
+    }
+
+    #[inline(always)]
     pub fn should_exit(&self) -> bool {
         self.exit
     }
@@ -128,7 +134,7 @@ impl Cpu {
         let pc = self.reg_pc;
         self.reg_pc += OP_SIZE;
 
-        debug!("{:010} {:#03X} {:04X} {:?}", self.counter, pc, instr, opcode);
+        debug!("{:010} 0x{:03X} {:04X} {}", self.counter, pc, instr, opcode);
 
         // execute instruction logic
         match opcode {
@@ -139,7 +145,16 @@ impl Cpu {
                    .pop()
                    .expect("not in subroutine; cannot return")
             }
-            JpConst{nnn} => self.reg_pc = nnn,
+            JpConst{nnn} => {
+                // just exit if we are in an infinite loop
+                // if nnn == pc &&
+                //     delay_timer.get_value() == 0 &&
+                //     sound_timer.get_value() == 0
+                // {
+                //     self.exit = true;
+                // }
+                self.reg_pc = nnn;
+            }
             Call{nnn} => {
                 if self.stack.len() >= STACK_SIZE {
                     panic!("subroutine nesting limit reached");

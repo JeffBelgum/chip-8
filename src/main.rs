@@ -9,6 +9,7 @@ extern crate log;
 extern crate portaudio;
 extern crate rand;
 extern crate termion;
+extern crate time;
 
 mod chip8;
 mod cpu;
@@ -56,6 +57,11 @@ fn main() {
         .arg(Arg::with_name("disassemble")
              .long("dis")
              .help("prints disassembled rom"))
+        .arg(Arg::with_name("cycles")
+             .short("c")
+             .long("cycles")
+             .takes_value(true)
+             .help("number for cycles to execute before exiting the emulator"))
         .get_matches();
 
     // load rom
@@ -67,8 +73,11 @@ fn main() {
         chip8::Chip8::disassemble(&bin_file);
     } else {
         let step = args.is_present("debug");
+        let cycles: Option<u64> = args.value_of("cycles")
+                                      .map(|c| c.parse().ok())
+                                      .unwrap_or(None);
         // create and run chip-8 emulator
-        chip8::Chip8::run(&bin_file, step)
+        chip8::Chip8::run(&bin_file, step, cycles);
     }
 }
 

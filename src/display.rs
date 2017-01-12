@@ -1,5 +1,7 @@
 use std::sync::{Arc, Mutex};
 
+use log::LogLevel;
+
 use memory_bus::MemoryBus;
 use window::Window;
 
@@ -38,7 +40,7 @@ impl Display {
     /// returns true if any screen pixels are flipped from set to unset when 
     /// the sprite is drawn, and false if that doesn’t happen.
     pub fn draw(&mut self, x: u16, y: u16, n: usize, mem_bus: &mut MemoryBus, i: usize) -> bool {
-        info!("drawing 8x{} block at ({},{}) with data 0b{:08b}{:08b}{:08b}{:08b}",
+        debug!("drawing 8x{} block at ({},{}) with data 0b{:08b}{:08b}{:08b}{:08b}",
                n, x, y, 
                mem_bus.read_word(i),
                mem_bus.read_word(i+1),
@@ -46,19 +48,39 @@ impl Display {
                mem_bus.read_word(i+3)
         );
         let mut unset_flag = false;
+        let mut temp_grid = vec![2; self.grid.len()];
         for y_offset in 0..n {
             let word = mem_bus.read_word(i + y_offset);
             for x_offset in 0..8 {
                 let pixel = (word >> (7 - x_offset)) & 1;
-                let idx = (y as usize + y_offset) * WIDTH + (x as usize + x_offset);
-                if idx >= 2048 {
-                    error!("uh oh mod idx x: {} x_o: {} y: {} y_o: {}", x, x_offset, y, y_offset);
+                let (_x, _y) = (x as usize + x_offset, y as usize + y_offset);
+                // ignore pixels that run off the edge of the row
+                if _x >= WIDTH || _y >= HEIGHT {
                     continue;
                 }
-                if self.grid[idx] == 1 && pixel == 0 {
+                let idx = _y * WIDTH + _x;
+                if self.grid[idx] == 1 && pixel == 1 {
                     unset_flag = true;
                 }
-                self.grid[idx] = pixel;
+                self.grid[idx] ^= pixel;
+                temp_grid[idx] = pixel;
+            }
+        }
+        if log_enabled!(LogLevel::Debug) {
+            for row in temp_grid.chunks(WIDTH) {
+                let mut row_str: String = "".into();
+                for pixel in row.iter() {
+                    row_str.push(if *pixel == 1 {'1'} else if *pixel == 0 {'0'} else { '_' });
+                }
+                debug!("{}", row_str);
+            }
+            debug!("");
+            for row in self.grid.chunks(WIDTH) {
+                let mut row_str: String = "".into();
+                for pixel in row.iter() {
+                    row_str.push(if *pixel == 1 {'1'} else {'0'});
+                }
+                debug!("{}", row_str);
             }
         }
         self.window.lock()

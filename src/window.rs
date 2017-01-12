@@ -26,6 +26,17 @@ uniform sampler2D tex;
 
 void main() {
   color = texture(tex, v_tex_coords);
+
+  for ( int i = -4; i <= 4; ++i )
+  {
+    for ( int j = -4; j <= 4; ++j ) 
+    {
+      float x = i * 0.03125 / 20.0;
+      float y = j * 0.0625 / 10.0;
+      float falloff = pow(19.0 - (i*i) + (j*j), 1.25);
+      color += min((texture(tex, v_tex_coords + vec2(x,y)) * 0.02) / falloff, vec4(1.0, 1.0, 1.0, 1.0));
+    }
+  }
 }
 "#;
 
@@ -142,9 +153,9 @@ impl Window {
                 }
                 
                 let pixel = if grid[grid_idx] == 1 {
-                    (1.0, 1.0, 1.0, 1.0)
+                    (1.0, 0.16, 0.16, 1.0)
                 } else {
-                    (0.0, 0.0, 0.0, 1.0)
+                    (0.07, 0.07, 0.07, 1.0)
                 };
                 // let pixel = (y as f32 / 319.0, x as f32 / 639.0, 0.0, 1.0);
                 row.push(pixel);

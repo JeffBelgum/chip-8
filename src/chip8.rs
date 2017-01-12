@@ -1,6 +1,8 @@
+use std::{fmt, io, thread};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
-use std::{fmt, io};
+use time;
 
 use cpu::Cpu;
 use display::Display;
@@ -10,6 +12,8 @@ use opcodes::OpCode;
 use sound::Sound;
 use timer::Timer;
 use window::Window;
+
+const CPU_SPEED: i64 = 2_000;
 
 pub struct Chip8 {
     cpu: Cpu,
@@ -48,7 +52,7 @@ impl Chip8 {
         }
     }
 
-    pub fn run(rom: &[u8], step: bool) {
+    pub fn run(rom: &[u8], step: bool, cycles: Option<u64>) {
         let mut mem_bus = MemoryBus::new();
         mem_bus.load_rom(rom);
         let window = Arc::new(Mutex::new(Window::new(64, 32)));
@@ -63,26 +67,53 @@ impl Chip8 {
             sound: Sound::new(),
         };
 
+        let start_time = time::get_time();
+
         // boot sound
         c8.sound.emit();
 
-        loop {
-        //while c8.cpu.instruction_count() < 20 {
-            c8.execute_cycle();
-            if c8.should_exit() {
-                break;
-            }
-            if step {
-                debug!("{:?}", c8);
-                let mut input = String::new();
-                let _ = io::stdin().read_line(&mut input);
-            }
+        // either loop at most some specified number of cycles or loop infinitely until rom exit
+        match cycles {
+            Some(cycles) => while c8.cpu.instruction_count() < cycles {
+                if c8._run(step) {
+                    break
+                }
+            },
+            None => loop { 
+                if c8._run(step) { 
+                    break 
+                } 
+            },
         }
 
-        debug!("Shutdown");
+        let end_time = time::get_time();
+
+        info!("Shutdown -- elapsed time {:?}", end_time - start_time);
+    }
+
+    fn _run(&mut self, step: bool) -> bool {
+        self.execute_cycle();
+
+        if self.should_exit() {
+            return true;
+        }
+
+        if step {
+            println!("{:?}", self);
+            let mut input = String::new();
+            let _ = io::stdin().read_line(&mut input);
+        } else {
+            debug!("{:?}", self);
+        }
+
+        false
     }
 
     pub fn execute_cycle(&mut self) {
+        let cycle_start = time::get_time();
+        if self.sound_timer.get_value() > 0 {
+            self.sound.emit();
+        }
         self.cpu.execute_instruction(&mut self.mem_bus,
                                      &mut self.display,
                                      &mut self.keyboard,
@@ -91,8 +122,12 @@ impl Chip8 {
         // TODO: should this happen here or at the beginning of the cycle?
         self.delay_timer.decr();
         self.sound_timer.decr();
-        if self.sound_timer.get_value() > 0 {
-            self.sound.emit();
+        let cycle_end = time::get_time();
+        let cycle_dur = (cycle_end - cycle_start).num_microseconds().expect("cycle took a crazy long time");
+        debug!("cycle duration: {} millis", cycle_dur / 1000);
+        if cycle_dur < CPU_SPEED {
+            let nanos = (CPU_SPEED - cycle_dur) * 1000;
+            thread::sleep(Duration::new(0, nanos as u32));
         }
     }
 

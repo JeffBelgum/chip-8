@@ -56,9 +56,9 @@ impl Sound {
     }
 
     pub fn emit(&mut self) {
-        self.stream.start().expect("failed to start pa stream");
-        self.pa.sleep(NUM_MILLIS);
-        self.stream.stop().expect("failed to stop pa stream");
+        // self.stream.start().expect("failed to start pa stream");
+        // self.pa.sleep(NUM_MILLIS);
+        // self.stream.stop().expect("failed to stop pa stream");
     }
 }
 
