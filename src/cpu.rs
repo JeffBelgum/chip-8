@@ -243,7 +243,13 @@ impl Cpu {
             SetSound{x} => sound_timer.set_value(self.reg_vx[x]),
             SetIRegAdd{x} => {
                 self.reg_i += self.reg_vx[x] as u16;
-                self.reg_vx[VF] = if self.reg_i > 0xFFF { 1 } else { 0 };
+                self.reg_vx[VF] = if self.reg_i > 0xFFF {
+                    // It's not clear to me whether this is a wrapping add, but it seems likely.
+                    self.reg_i &= 0xFFF;
+                    1
+                } else {
+                    0
+                };
             }
             SetISprite{x} => {
                 let hex_char = self.reg_vx[x];

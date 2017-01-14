@@ -13,7 +13,7 @@ use sound::Sound;
 use timer::Timer;
 use window::Window;
 
-const CPU_SPEED: i64 = 2_000;
+const CPU_SPEED_NS: i64 = 1_000_000_000 / 500;
 
 pub struct Chip8 {
     cpu: Cpu,
@@ -120,13 +120,13 @@ impl Chip8 {
                                      &mut self.delay_timer,
                                      &mut self.sound_timer);
         // TODO: should this happen here or at the beginning of the cycle?
-        self.delay_timer.decr();
-        self.sound_timer.decr();
+        self.delay_timer.cycle();
+        self.sound_timer.cycle();
         let cycle_end = time::get_time();
-        let cycle_dur = (cycle_end - cycle_start).num_microseconds().expect("cycle took a crazy long time");
-        debug!("cycle duration: {} millis", cycle_dur / 1000);
-        if cycle_dur < CPU_SPEED {
-            let nanos = (CPU_SPEED - cycle_dur) * 1000;
+        let cycle_dur = (cycle_end - cycle_start).num_nanoseconds().unwrap();
+        debug!("cycle duration: {} micros", cycle_dur / 1000);
+        if cycle_dur < CPU_SPEED_NS {
+            let nanos = CPU_SPEED_NS - cycle_dur;
             thread::sleep(Duration::new(0, nanos as u32));
         }
     }

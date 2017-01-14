@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use time;
 
 use log::LogLevel;
 
@@ -47,6 +48,7 @@ impl Display {
                mem_bus.read_word(i+2),
                mem_bus.read_word(i+3)
         );
+        let prep_start = time::get_time();
         let mut unset_flag = false;
         let mut temp_grid = vec![2; self.grid.len()];
         for y_offset in 0..n {
@@ -83,58 +85,16 @@ impl Display {
                 debug!("{}", row_str);
             }
         }
+        let prep_end = time::get_time();
         self.window.lock()
                    .expect("failed to aquire lock")
                    .draw(&self.grid);
+        let draw_end = time::get_time();
 
-        // for now do full grid update -- it's simpler
-        // write!(self.out, "{}", cursor::Goto(1, 1));
-        // for row in self.grid.chunks(WIDTH) {
-        //     let row_str = row.iter()
-        //                      .map(|pixel| if *pixel == 1 { '█' } else if *pixel == 0 { ' ' } else { 'X' })
-        //                      .collect::<String>();
-        //     debug!("{}", row_str);
-        //     writeln!(self.out, "{}", row_str);
-        // }
+        let prep_time = (prep_end - prep_start).num_nanoseconds().unwrap();
+        let draw_time = (draw_end - prep_end).num_nanoseconds().unwrap();
+        info!("prep time: {}, draw time: {}", prep_time / 1000, draw_time / 1000);
 
-        // // termion coordinate system is one-based
-        // let x = x + 1;
-        // let y = y + 1;
-
-        // // sprites are drawn 2 rows at a time in order to use unicode half-blocks, "▄",
-        // // for each row.
-        // let mut j = 0;
-        // while j < n {
-        //     // position cursor
-        //     let y_j = (y + j as u16) / 2;
-        //     write!(self.out, "{}", cursor::Goto(x, y_j));
-
-        //     // read words
-        //     let top_word = mem_bus.read_word(i + j);
-        //     let bottom_word = if j != n - 1 {
-        //         mem_bus.read_word(i + j + 1)
-        //     } else {
-        //         0
-        //     };
-
-        //     // loop through bits in both words simultaniously
-        //     for shift in 0..8 {
-        //         let shift = 7 - shift;
-
-        //         let top_pixel = (top_word >> shift) & 1;
-        //         let bottom_pixel = (bottom_word >> shift) & 1;
-        //         if top_pixel == 1 && bottom_pixel == 1 {
-        //             write!(self.out, "{}", FULL_BLOCK);
-        //         } else if top_pixel == 1{
-        //             write!(self.out, "{}", TOP_BLOCK);
-        //         } else if bottom_pixel == 1 {
-        //             write!(self.out, "{}", BOTTOM_BLOCK);
-        //         } else {
-        //             write!(self.out, " ");
-        //         }
-        //     }
-        //     j += 2;
-        // }
         unset_flag
     }
 }
