@@ -191,21 +191,23 @@ impl Cpu {
                 self.reg_vx[x] = result as u8;
             }
             SetRegSub{x,y} => {
-                let result = self.reg_vx[x] as i16 - self.reg_vx[y] as i16;
-                self.reg_vx[VF] = if result < 0 { 1 } else { 0 };
-                self.reg_vx[x] = result as u8;
+                let vx = self.reg_vx[x];
+                let vy = self.reg_vx[y];
+                self.reg_vx[VF] = if vx < vy { 0 } else { 1 };
+                self.reg_vx[x] = vx.wrapping_sub(vy);
             }
             SetShr1{x} => {
                 self.reg_vx[VF] = self.reg_vx[x] & 1;
                 self.reg_vx[x] >>= 1;
             }
             SetRegRevSub{x,y} => {
-                let result = self.reg_vx[y] as i16 - self.reg_vx[x] as i16;
-                self.reg_vx[VF] = if result < 0 { 1 } else { 0 };
-                self.reg_vx[x] = result as u8;
+                let vx = self.reg_vx[x];
+                let vy = self.reg_vx[y];
+                self.reg_vx[VF] = if vy < vx { 0 } else { 1 };
+                self.reg_vx[x] = vy.wrapping_sub(vx);
             }
             SetShl1{x} => {
-                self.reg_vx[VF] = self.reg_vx[x] & 0b1000_0000;
+                self.reg_vx[VF] = (self.reg_vx[x] >> 7) & 0b1;
                 self.reg_vx[x] <<= 1;
             }
             JpRegNe{x,y} => {
